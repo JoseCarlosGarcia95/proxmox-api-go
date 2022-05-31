@@ -84,6 +84,11 @@ type ConfigQemu struct {
 	Nameserver   string `json:"nameserver"`
 	Sshkeys      string `json:"sshkeys"`
 
+	// Tpm configuration
+	TpmEnabled bool   `json:"tpm_enabled"`
+	TpmStorage string `json:"tpm_storage"`
+	TpmVersion string `json:"tpm_version"`
+
 	// arrays are hard, support 16 interfaces for now
 	Ipconfig0  string `json:"ipconfig0"`
 	Ipconfig1  string `json:"ipconfig1"`
@@ -157,6 +162,10 @@ func (config ConfigQemu) CreateVm(vmr *VmRef, client *Client) (err error) {
 
 	if config.Scsihw != "" {
 		params["scsihw"] = config.Scsihw
+	}
+
+	if config.TpmEnabled {
+		params["tpmstate0"] = fmt.Sprintf("%s:1,version=%s", config.TpmStorage, config.TpmVersion)
 	}
 
 	err = config.CreateQemuMachineParam(params)
@@ -325,6 +334,10 @@ func (config ConfigQemu) UpdateConfig(vmr *VmRef, client *Client) (err error) {
 
 	if config.Scsihw != "" {
 		configParams["scsihw"] = config.Scsihw
+	}
+
+	if config.TpmEnabled {
+		configParams["tpmstate0"] = fmt.Sprintf("%s:1,version=%s", config.TpmStorage, config.TpmVersion)
 	}
 
 	// Create disks config.
@@ -937,7 +950,7 @@ func NewConfigQemuFromApi(vmr *VmRef, client *Client) (config *ConfigQemu, err e
 	for _, usbName := range usbNames {
 		usbConfStr := vmConfig[usbName]
 		usbConfList := strings.Split(usbConfStr.(string), ",")
-		
+
 		id := rxDeviceID.FindStringSubmatch(usbName)
 		usbID, _ := strconv.Atoi(id[0])
 		_, host := ParseSubConf(usbConfList[0], "=")
